@@ -1,0 +1,61 @@
+name: Build Portable Python for macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: "Python version to build (e.g. 3.11.9)"
+        required: true
+        default: "3.11.9"
+
+jobs:
+  build-portable-python-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write  # needed for creating releases
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install openssl readline sqlite3 xz zlib bzip2
+
+      - name: Download Python source
+        run: |
+          PY_VER=${{ github.event.inputs.python_version }}
+          echo "Building Python $PY_VER"
+          curl -O https://www.python.org/ftp/python/$PY_VER/Python-$PY_VER.tgz
+          tar xf Python-$PY_VER.tgz
+          mv Python-$PY_VER python-src
+
+      - name: Build Portable Python
+        run: |
+          cd python-src
+          ./configure --prefix=$PWD/../python-portable \
+                      --enable-optimizations \
+                      --with-openssl=$(brew --prefix openssl) \
+                      CPPFLAGS="-I$(brew --prefix zlib)/include -I$(brew --prefix bzip2)/include -I$(brew --prefix readline)/include" \
+                      LDFLAGS="-L$(brew --prefix zlib)/lib -L$(brew --prefix bzip2)/lib -L$(brew --prefix readline)/lib"
+          make -j$(sysctl -n hw.logicalcpu)
+          make install
+          cd ..
+          ls -R python-portable
+
+      - name: Package portable Python
+        run: |
+          PY_VER=${{ github.event.inputs.python_version }}
+          tar czf python-portable-$PY_VER-macos.tar.gz python-portable
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.python_version }}
+          name: "Portable Python ${{ github.event.inputs.python_version }}"
+          body: |
+            This release contains a portable build of Python ${{ github.event.inputs.python_version }} for macOS.
+          files: python-portable-${{ github.event.inputs.python_version }}-macos.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
