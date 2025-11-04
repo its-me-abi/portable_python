@@ -1,0 +1,22 @@
+name: Free macOS VM (Interactive SSH)
+
+on:
+  workflow_dispatch:  # run manually from GitHub Actions tab
+
+jobs:
+  macos-terminal:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install basic tools
+        run: |
+          brew install wget git python3
+          echo "Python version:"
+          python3 --version
+
+      - name: Start SSH session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
