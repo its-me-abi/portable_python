@@ -1,7 +1,12 @@
 name: Build Portable Python for Linux
 
 on:
-  workflow_dispatch:  # 👈 This adds the "Run workflow" button in Actions tab
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: "Python version to build (e.g. 3.11.9)"
+        required: true
+        default: "3.11.9"
 
 jobs:
   build-portable-python:
@@ -11,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential wget libssl-dev zlib1g-dev \
@@ -20,13 +25,15 @@ jobs:
 
       - name: Download Python source
         run: |
-          PY_VER=3.11.9
+          PY_VER=${{ github.event.inputs.python_version }}
+          echo "Building Python $PY_VER"
           wget https://www.python.org/ftp/python/$PY_VER/Python-$PY_VER.tgz
           tar xf Python-$PY_VER.tgz
+          mv Python-$PY_VER python-src
 
       - name: Build Portable Python
         run: |
-          cd Python-*
+          cd python-src
           ./configure --prefix=$PWD/../python-portable --enable-optimizations
           make -j$(nproc)
           make install
@@ -35,10 +42,11 @@ jobs:
 
       - name: Package portable Python
         run: |
-          tar czf python-portable.tar.gz python-portable
+          PY_VER=${{ github.event.inputs.python_version }}
+          tar czf python-portable-$PY_VER.tar.gz python-portable
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-portable-linux
-          path: python-portable.tar.gz
+          name: python-portable-${{ github.event.inputs.python_version }}-linux
+          path: python-portable-${{ github.event.inputs.python_version }}.tar.gz
