@@ -1,4 +1,4 @@
-name: macOS Web Shell
+name: macOS WebShell
 on: workflow_dispatch
 
 jobs:
@@ -8,3 +8,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Start tmate session
         uses: mxschmitt/action-tmate@v3
+        id: tmate
+      - name: Show connection info
+        run: |
+          echo "----------------------------------"
+          echo "🔗 Web Shell URL:"
+          echo "${{ steps.tmate.outputs.web-url }}"
+          echo
+          echo "💻 SSH Command:"
+          echo "${{ steps.tmate.outputs.ssh }}"
+          echo "----------------------------------"
