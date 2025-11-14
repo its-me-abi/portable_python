@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install openssl@3 ca-certificates readline zlib bzip2 sqlite xz gdbm tcl-tk
+          brew install openssl@3 readline zlib bzip2 sqlite xz gdbm tcl-tk
 
       - name: Download Python source
         run: |
@@ -118,35 +118,45 @@ jobs:
           ./bin/python3 -m pip install --upgrade pip setuptools wheel
 
       ####################################################
-      #       Add SSL Certificate Bundle (Fix HTTPS)
+      #           ADD SSL CERTIFICATES FOR HTTPS
       ####################################################
       - name: Add SSL certificates
         working-directory: python-src/universal2
         run: |
-          CERT_SRC="$(brew --prefix ca-certificates)/etc/ca-certificates/cert.pem"
+          PREFIX="$(brew --prefix)"
 
-          echo "Using certificate: $CERT_SRC"
+          # Try common macOS OpenSSL cert locations
+          for p in \
+            "$PREFIX/etc/openssl@3/cert.pem" \
+            "$PREFIX/etc/openssl/cert.pem" \
+            "$PREFIX/opt/openssl@3/etc/openssl@3/cert.pem" \
+            "/etc/ssl/cert.pem"; do
+            if [ -f "$p" ]; then
+              CERT_SRC="$p"
+              break
+            fi
+          done
 
           if [[ ! -f "$CERT_SRC" ]]; then
-            echo "CA certificate bundle not found!"
-            ls -R "$(brew --prefix ca-certificates)/etc"
+            echo "ERROR: CA certificate bundle not found!"
+            ls -R "$PREFIX/etc" || true
             exit 1
           fi
+
+          echo "Using certificate: $CERT_SRC"
 
           mkdir -p ./ssl
           cp "$CERT_SRC" ./ssl/cert.pem
 
+          # pip and requests need SSL_CERT_FILE
           echo "export SSL_CERT_FILE=$(pwd)/ssl/cert.pem" >> ./bin/activate
 
-          # Automatically load it in Python
+          # python auto-loads cert fix
           PYVER=$(./bin/python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           SITEPKG="./lib/python${PYVER}/site-packages"
-
           mkdir -p "$SITEPKG"
 
-          echo "import os; os.environ.setdefault('SSL_CERT_FILE', r'$(pwd)/ssl/cert.pem')" \
-            > "$SITEPKG/_cert_fix.py"
-
+          echo "import os; os.environ.setdefault('SSL_CERT_FILE', r'$(pwd)/ssl/cert.pem')" > "$SITEPKG/_cert_fix.py"
           echo "import _cert_fix" >> "$SITEPKG/sitecustomize.py"
 
       ####################################################
@@ -170,8 +180,8 @@ jobs:
           name: "Portable Python ${{ github.event.inputs.python_version }}"
           body: |
             Portable Python built as a macOS universal2 binary.
-            Supports both Intel (x86_64) and Apple Silicon (arm64).
-            HTTPS & pip fully working with system SSL certificates.
+            Supports Intel (x86_64) + Apple Silicon (arm64).
+            Fully working HTTPS + SSL + pip.
           files: python-${{ github.event.inputs.python_version }}-macos-universal2.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
