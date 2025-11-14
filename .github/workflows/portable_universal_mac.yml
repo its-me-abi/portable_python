@@ -115,7 +115,7 @@ jobs:
       - name: Package Universal2 Python
         working-directory: python-src
         run: |
-          tar -czf python-${PY_VERSION}-macos-universal2.tar.gz universal2
+          tar -czf python-${{ github.event.inputs.python_version }}-macos-universal2.tar.gz universal2
 
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
