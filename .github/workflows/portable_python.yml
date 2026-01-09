@@ -40,13 +40,24 @@ jobs:
           cd ..
           ls -R python-portable
 
-      - name: Package portable Python
+      - name: Package  Python
+        working-directory: python-src
         run: |
-          PY_VER=${{ github.event.inputs.python_version }}
-          tar czf python-portable-$PY_VER.tar.gz python-portable
+          tar -czf python-${PY_VERSION}-linux.tar.gz python-portable
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Move archive to workspace root
+        run: mv "python-src/python-${PY_VERSION}-linux.tar.gz" .
+
+      ####################################################
+      #            PUBLISH RELEASE
+      ####################################################
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: python-portable-${{ github.event.inputs.python_version }}-linux
-          path: python-portable-${{ github.event.inputs.python_version }}.tar.gz
+          tag_name: v${{ github.event.inputs.python_version }}
+          name: "Portable Python ${{ github.event.inputs.python_version }}"
+          body: |
+            Portable Python built as a linux
+          files: python-${{ github.event.inputs.python_version }}-linux.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
