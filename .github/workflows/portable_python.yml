@@ -12,6 +12,9 @@ jobs:
   build-portable-python:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write   # REQUIRED to create releases
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,8 +23,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential wget libssl-dev zlib1g-dev \
-              libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev \
-              libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev
+            libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev \
+            libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev
 
       - name: Download Python source
         run: |
@@ -37,27 +40,17 @@ jobs:
           ./configure --prefix=$PWD/../python-portable --enable-optimizations
           make -j$(nproc)
           make install
-          cd ..
-          ls -R python-portable
 
-      - name: Package  Python
-        working-directory: python-src
+      - name: Archive portable Python
         run: |
-          tar -czf python-${PY_VERSION}-linux.tar.gz python-portable
+          PY_VER=${{ github.event.inputs.python_version }}
+          tar -czf python-$PY_VER-linux-x86_64.tar.gz python-portable
 
-      - name: Move archive to workspace root
-        run: mv "python-src/python-${PY_VERSION}-linux.tar.gz" .
-
-      ####################################################
-      #            PUBLISH RELEASE
-      ####################################################
-      - name: Create or update GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.python_version }}
-          name: "Portable Python ${{ github.event.inputs.python_version }}"
-          body: |
-            Portable Python built as a linux
-          files: python-${{ github.event.inputs.python_version }}-linux.tar.gz
+          tag_name: python-${{ github.event.inputs.python_version }}
+          name: Python ${{ github.event.inputs.python_version }} (Portable Linux)
+          files: python-${{ github.event.inputs.python_version }}-linux-x86_64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
