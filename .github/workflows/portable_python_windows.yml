@@ -1,0 +1,82 @@
+name: Build Portable Python (Release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: "Python version (e.g. 3.12.3)"
+        required: false
+        default: "3.12.3"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Set Python version
+        shell: pwsh
+        run: |
+          $version = "${{ github.event.inputs.python_version }}"
+          if (-not $version -or $version -eq "") {
+            $version = "3.12.3"
+          }
+
+          $parts = $version.Split('.')
+          $short = "$($parts[0])$($parts[1])"
+
+          echo "PYTHON_VERSION=$version" >> $env:GITHUB_ENV
+          echo "PYTHON_SHORT=$short" >> $env:GITHUB_ENV
+
+      - name: Download embeddable Python
+        run: |
+          curl -L -o python-embed.zip https://www.python.org/ftp/python/${env:PYTHON_VERSION}/python-${env:PYTHON_VERSION}-embed-amd64.zip
+
+      - name: Extract Python
+        run: |
+          mkdir portable-python
+          tar -xf python-embed.zip -C portable-python
+
+      - name: Enable site module
+        run: |
+          (Get-Content portable-python/python${env:PYTHON_SHORT}._pth) `
+            -replace '#import site', 'import site' |
+            Set-Content portable-python/python${env:PYTHON_SHORT}._pth
+
+      - name: Download get-pip.py
+        run: |
+          curl -L -o portable-python/get-pip.py https://bootstrap.pypa.io/get-pip.py
+
+      - name: Install pip
+        run: |
+          portable-python/python.exe portable-python/get-pip.py
+
+      - name: Verify pip
+        run: |
+          portable-python/python.exe -m pip --version
+
+      - name: Zip portable Python
+        run: |
+          Compress-Archive -Path portable-python\* -DestinationPath portable-python-${env:PYTHON_VERSION}.zip
+
+      # 🔑 Create GitHub Release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: python-${{ env.PYTHON_VERSION }}
+          release_name: Portable Python ${{ env.PYTHON_VERSION }}
+          draft: false
+          prerelease: false
+
+      # 📦 Upload zip to Release
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: portable-python-${{ env.PYTHON_VERSION }}.zip
+          asset_name: portable-python-${{ env.PYTHON_VERSION }}.zip
+          asset_content_type: application/zip
