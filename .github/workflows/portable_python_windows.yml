@@ -1,4 +1,4 @@
-name: Build Portable Python (Release)
+name: Build Portable Python windwos
 
 on:
   workflow_dispatch:
