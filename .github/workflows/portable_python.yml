@@ -1,4 +1,4 @@
-name: Portable Python (Ubuntu 20 Compatible)
+name: Portable Python linux
 
 on:
   workflow_dispatch:
