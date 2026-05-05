@@ -39,9 +39,9 @@ jobs:
       # =========================
       - name: Build OpenSSL 1.1
         run: |
-          wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1w.tar.gz
-          tar -xzf openssl-1.1.1w.tar.gz
-          cd openssl-1.1.1w
+          wget https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1w.tar.gz
+          tar -xzf OpenSSL_1_1_1w.tar.gz
+          cd OpenSSL_1_1_1w
 
           ./config \
             --prefix=$PWD/../openssl-build \
