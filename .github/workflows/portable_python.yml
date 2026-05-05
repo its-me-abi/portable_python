@@ -35,23 +35,6 @@ jobs:
             libssl-dev
 
       # =========================
-      # 🔐 BUILD OPENSSL 1.1 (CRITICAL FOR UBUNTU 20)
-      # =========================
-      - name: Build OpenSSL 1.1
-        run: |
-          wget https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1w.tar.gz
-          tar -xzf OpenSSL_1_1_1w.tar.gz
-          cd openssl-OpenSSL_1_1_1w
-
-          ./config \
-            --prefix=$PWD/../openssl-build \
-            --openssldir=$PWD/../openssl-build \
-            shared
-
-          make -j$(nproc)
-          make install
-
-      # =========================
       # 🐍 BUILD PYTHON
       # =========================
       - name: Build Python
@@ -59,15 +42,9 @@ jobs:
           wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz
           tar -xzf Python-3.11.9.tgz
           cd Python-3.11.9
-
-          export OPENSSL_DIR=$PWD/../openssl-build
-
           ./configure \
             --prefix=$PWD/../python-portable \
             --enable-optimizations \
-            --with-openssl=$OPENSSL_DIR \
-            LDFLAGS="-Wl,-rpath=$OPENSSL_DIR/lib"
-
           make -j$(nproc)
           make install
 
@@ -90,25 +67,6 @@ jobs:
           rm -rf python-portable/lib/python*/idlelib || true
           rm -rf python-portable/lib/python*/tkinter || true
 
-      # =========================
-      # 📁 MAKE PORTABLE RUNTIME
-      # =========================
-      - name: Package runtime
-        run: |
-          mkdir -p python-portable/lib
-
-          cp -r openssl-build/lib/* python-portable/lib/ || true
-
-          cat > python-portable/run.sh << 'EOF'
-          #!/usr/bin/env bash
-          DIR="$(cd "$(dirname "$0")" && pwd)"
-
-          export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-
-          exec "$DIR/bin/python3" "$@"
-          EOF
-
-          chmod +x python-portable/run.sh
 
       # =========================
       # 📦 UPLOAD
