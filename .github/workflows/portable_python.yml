@@ -11,6 +11,8 @@ on:
 jobs:
   build-portable-python:
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
 
     permissions:
       contents: write   # REQUIRED to create releases
