@@ -41,7 +41,7 @@ jobs:
         run: |
           wget https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1w.tar.gz
           tar -xzf OpenSSL_1_1_1w.tar.gz
-          cd OpenSSL_1_1_1w
+          cd openssl-OpenSSL_1_1_1w
 
           ./config \
             --prefix=$PWD/../openssl-build \
