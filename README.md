@@ -5,3 +5,5 @@ it is using github actions to generate / compile python by mac/ and linux virtua
 generated portable python willbe uploaded to release page so anyone can download and use.
 
 portablypy.sh should be used for linux because workflow generated python has probelms
+
+download it here https://github.com/its-me-abi/portable_python/releases
